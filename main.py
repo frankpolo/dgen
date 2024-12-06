@@ -1,9 +1,8 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import httpx
-import os
-from pydantic import BaseModel
+import json
 
 app = FastAPI()
 
@@ -16,40 +15,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class OverpassQuery(BaseModel):
-    query: str
-
-# Basic rate limiting dictionary (simple in-memory approach)
-request_count = {}
-MAX_REQUESTS_PER_MINUTE = 50
-
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    client_ip = request.client.host
-    
-    # Initialize count for this IP if not exists
-    if client_ip not in request_count:
-        request_count[client_ip] = 1
-    else:
-        request_count[client_ip] += 1
-    
-    # Check if IP has exceeded rate limit
-    if request_count[client_ip] > MAX_REQUESTS_PER_MINUTE:
-        return JSONResponse(
-            status_code=429, 
-            content={"detail": "Too many requests. Please try again later."}
-        )
-    
-    response = await call_next(request)
-    return response
-
 @app.post("/api/roads")
-async def query_overpass(query_data: OverpassQuery):
+async def query_overpass(request: Request):
     try:
+        # Try to parse the body as JSON
+        body = await request.json()
+        
+        # Check if 'query' exists in the body
+        if 'query' not in body:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        query = body['query']
+        
+        # Additional validation
+        if not isinstance(query, str):
+            raise HTTPException(status_code=400, detail="Query must be a string")
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 'https://overpass-api.de/api/interpreter', 
-                data=query_data.query,
+                content=query,
                 headers={'Content-Type': 'application/x-www-form-urlencoded'}
             )
             
@@ -62,6 +47,8 @@ async def query_overpass(query_data: OverpassQuery):
             
             return response.json()
     
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
     except httpx.RequestError as e:
         raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
     except Exception as e:
