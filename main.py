@@ -162,7 +162,7 @@ async def query_overpass(request: Request):
                     detail=f"Overpass API error: {response.text}"
                 )
             
-            return response.json()['elements']
+            return {"elements": response.json()['elements']}
     
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
