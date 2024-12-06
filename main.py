@@ -20,13 +20,17 @@ async def query_overpass(request: Request):
     try:
         # Try to parse the body as JSON
         body = await request.json()
-        
+        print('body')
+        print(body)
+        print('reqjson')
+        print(request.json())
         # Check if 'query' exists in the body
         if 'query' not in body:
             raise HTTPException(status_code=400, detail="Query is required")
         
         query = body['query']
-        
+        print('query')
+        print(query)
         # Additional validation
         if not isinstance(query, str):
             raise HTTPException(status_code=400, detail="Query must be a string")
@@ -37,14 +41,16 @@ async def query_overpass(request: Request):
                 content=query,
                 headers={'Content-Type': 'application/x-www-form-urlencoded'}
             )
-            
+            print('response')
+            print(response)
             # Check if request was successful
             if response.status_code != 200:
                 raise HTTPException(
                     status_code=response.status_code, 
                     detail="Error querying Overpass API"
                 )
-            
+            print('jjjson')
+            print(response.json())
             return response.json()
     
     except json.JSONDecodeError:
