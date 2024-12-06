@@ -1,19 +1,18 @@
-from fastapi import FastAPI, Request, HTTPException, Body
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import httpx
-import json
 import logging
 
-
 app = FastAPI()
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-# CORS middleware to allow cross-origin requests
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,23 +21,27 @@ app.add_middleware(
 @app.post("/api/roads")
 async def query_overpass(request: Request):
     try:
-        # Log the raw request body for debugging
+        # Try to get the body content
         body_raw = await request.body()
         logger.debug(f"Raw request body: {body_raw}")
 
-        # Try to parse the body as JSON
-        try:
-            body = await request.json()
-            logger.debug(f"Parsed JSON body: {body}")
-        except Exception as json_error:
-            logger.error(f"JSON parsing error: {json_error}")
-            raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(json_error)}")
-
-        # Validate query
-        query = body.get('query')
-        if not query:
-            logger.error("No query found in request body")
-            raise HTTPException(status_code=400, detail="Query is required")
+        # Check if the body is already a valid Overpass query string
+        if body_raw and body_raw.startswith(b'[out:json]'):
+            query = body_raw.decode('utf-8')
+        else:
+            # Try to parse as JSON
+            try:
+                body = await request.json()
+                logger.debug(f"Parsed JSON body: {body}")
+                
+                # Extract query, supporting different input formats
+                query = body.get('query')
+                if not query:
+                    raise ValueError("No query found in request body")
+            
+            except Exception as json_error:
+                logger.error(f"JSON parsing error: {json_error}")
+                raise HTTPException(status_code=400, detail=f"Invalid request: {str(json_error)}")
 
         # Log the query for debugging
         logger.debug(f"Extracted query: {query}")
@@ -67,7 +70,7 @@ async def query_overpass(request: Request):
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-# Add a simple health check endpoint
+# Health check endpoint
 @app.get("/")
 async def health_check():
     return {"status": "healthy"}
