@@ -85,6 +85,8 @@ async def query_roads(request: Request):
                     if response.status_code != 200:
                         logger.error(f"Overpass API error for {road_type}: {response.text}")
                         road_results[road_type] = []
+                        print('Errorrrrrrrrrrrrrrrrrr')
+                        print(road_type)
                         continue
                     
                     # Parse and store results
@@ -94,6 +96,9 @@ async def query_roads(request: Request):
                 except httpx.RequestError as e:
                     logger.error(f"Request error for {road_type}: {str(e)}")
                     road_results[road_type] = []
+                    print('Errorrrrrrrrrrrrrrrrrr')
+                    print(road_type)
+                    
                 except json.JSONDecodeError as e:
                     logger.error(f"JSON decode error for {road_type}: {str(e)}")
                     road_results[road_type] = []
