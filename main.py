@@ -1,3 +1,37 @@
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import httpx
+import logging
+from typing import Dict, List
+import json
+
+app = FastAPI()
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["POST"],
+    allow_headers=["*"],
+)
+
+# Road types to query
+ROAD_TYPES = [
+    "motorway", 
+    "trunk", 
+    "primary", 
+    "secondary", 
+    "tertiary", 
+    "unclassified", 
+    "residential"
+]
+
+
 @app.post("/api4/roads")
 async def query_roads(request: Request):
     try:
@@ -72,3 +106,9 @@ async def query_roads(request: Request):
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Unexpected server error")
+
+# Health check endpoint
+@app.get("/")
+async def health_check():
+    return {"status": "healthy"}
+        
