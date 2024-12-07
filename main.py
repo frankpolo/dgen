@@ -57,7 +57,7 @@ async def query_roads(request: Request):
         road_results: Dict[str, List] = {}
         
         # Use httpx for concurrent requests
-        async with httpx.AsyncClient(timeout=30.0) as client:  # Added timeout
+        async with httpx.AsyncClient(timeout=90.0) as client:  # Added timeout
             # Create queries for all road types
             tasks = []
             for road_type in ROAD_TYPES:
